@@ -1,3 +1,7 @@
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from typing import cast
+
 import flask_sqlalchemy as fsa
 
 
@@ -19,10 +23,14 @@ def test_pagination_pages_when_0_items_per_page():
     assert p.pages == 0
 
 
-def test_query_paginate(app, db, Todo):
+def _create_todo_entries(Todo, app, db):
     with app.app_context():
         db.session.add_all([Todo('', '') for _ in range(100)])
         db.session.commit()
+
+
+def test_query_paginate(app, db, Todo):
+    _create_todo_entries(Todo, app, db)
 
     @app.route('/')
     def index():
@@ -41,3 +49,14 @@ def test_query_paginate(app, db, Todo):
         # query default
         p = Todo.query.paginate()
         assert p.total == 100
+
+
+def test_allows_passing_in_an_object_that_responds_to_count_with_the_current_object(app, db, Todo):
+    _create_todo_entries(Todo, app, db)
+
+    def counter(model):
+        return 4  # statistical average ;)
+
+    p = Todo.query.paginate(counter=counter)
+
+    assert p.total == 4, 'expected to have returned our fixed count'

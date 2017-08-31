@@ -427,7 +427,7 @@ class BaseQuery(orm.Query):
             abort(404)
         return rv
 
-    def paginate(self, page=None, per_page=None, error_out=True):
+    def paginate(self, page=None, per_page=None, error_out=True, counter=None):
         """Returns ``per_page`` items from page ``page``.
 
         If no items are found and ``page`` is greater than 1, or if page is
@@ -440,6 +440,10 @@ class BaseQuery(orm.Query):
         with 404.
         If there is no request or they aren't in the query, they default to 1
         and 20 respectively.
+
+        If counter is set it'll be called with the current object. This so
+        that if you need to provide custom ways of doing counting, provide
+        counter caching, etc… then you can do so.
 
         Returns a :class:`Pagination` object.
         """
@@ -481,6 +485,8 @@ class BaseQuery(orm.Query):
         # items than we expected.
         if page == 1 and len(items) < per_page:
             total = len(items)
+        elif counter:
+            total = counter(self)
         else:
             total = self.order_by(None).count()
 
